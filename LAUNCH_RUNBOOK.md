@@ -5,6 +5,53 @@ This document is the operational sequence for launching `hOUR` on Base.
 It is not marketing copy.
 It is the record of what must be true before launch, what happens during launch, and what changes are permitted after launch.
 
+## Execution Order
+
+Use this as the working checklist. Do not skip steps.
+
+### 1. Freeze the launch inputs
+
+- Confirm LP allocation in `hOUR`
+- Confirm reserve allocation in `hOUR`
+- Confirm initial ETH amount for the pool
+- Confirm any non-LP reserve destinations
+- Confirm the exact launch timestamp
+
+### 2. Preflight the wallets
+
+- Confirm the deployer wallet still holds the intended launch allocation
+- Confirm the liquidity wallet is funded with the final ETH amount
+- Confirm the reward wallet is correct
+- Confirm no tokens were sent to the wrong destination
+
+### 3. Prepare the site
+
+- Keep the public site copy on `Trading disabled`
+- Keep swap and market actions hidden or disabled until liquidity exists
+- Keep the token page aligned with chain truth
+
+### 4. Execute launch
+
+- Transfer LP allocation to the liquidity wallet if needed
+- Create the `hOUR / ETH` pool on Aerodrome
+- Add liquidity on Aerodrome
+- Confirm the pool is visible and indexed
+- Call `enableTrading()`
+
+### 5. Verify post-launch state
+
+- Confirm `tradingEnabled = true`
+- Confirm owner still matches the expected wallet
+- Confirm fees still match the expected values
+- Confirm the pool is active and swappable
+- Confirm the public site now reflects live chain state
+
+### 6. Publish only after checks pass
+
+- Publish the announcement only after chain state and UI state agree
+- Do not post if the site is stale
+- Do not tune parameters unless the change is critical
+
 ## Current Contract
 
 - Token: `Witching Hour`
@@ -156,8 +203,8 @@ The site and public statements should say:
 
 ## Immediate Next Actions
 
-1. Finalize LP allocation in `hOUR`.
-2. Finalize initial ETH amount for the pool.
-3. Fund the liquidity wallet.
-4. Pick the exact launch timestamp.
+1. Write the LP allocation, reserve allocation, and initial ETH amount into this file.
+2. Fund the liquidity wallet and verify the reward wallet.
+3. Set the launch timestamp and confirm owner approval.
+4. Run the launch sequence in order.
 5. Prepare the post-launch multisig migration plan before launch day, even if the transfer happens after launch.

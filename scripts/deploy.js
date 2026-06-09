@@ -1,7 +1,5 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import { network } from "hardhat";
-
-dotenv.config();
 
 async function main() {
   const { ethers } = await network.connect();
@@ -15,7 +13,7 @@ async function main() {
 
   const [deployer] = await ethers.getSigners();
 
-  console.log("Deploying Witching hOUR token...");
+  console.log("Deploying Witching Hour token...");
   console.log("Deployer:", deployer.address);
 
   const token = await ethers.deployContract("HourToken", [
@@ -25,9 +23,7 @@ async function main() {
 
   await token.waitForDeployment();
 
-  const address = await token.getAddress();
-
-  console.log("hOUR token deployed to:", address);
+  console.log("hOUR token deployed to:", await token.getAddress());
 }
 
 main().catch((error) => {
