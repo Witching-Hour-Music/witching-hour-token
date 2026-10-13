@@ -9,10 +9,18 @@
 //   node scripts/relayer/manual-confirm.mjs mint lockId=0x.. to=0x.. amount=1000 --signer=hour-bridge-signer-2
 //   node scripts/relayer/manual-confirm.mjs release releaseId=0x.. to=0x.. amount=1000 --signer=hour-bridge-signer-3
 import "dotenv/config";
-import { createWalletClient, http } from "viem";
+import { createPublicClient, createWalletClient, http } from "viem";
 import { base } from "viem/chains";
 import { loadCdpAccountByName, BRIDGE_SIGNERS } from "./cdp-signer.mjs";
 import { HOUR_BRIDGE_VAULT_ABI, WRAPPED_HOUR_ABI } from "./abis.mjs";
+
+async function assertSucceeded(publicClient, hash, label) {
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    throw new Error(`${label} reverted on-chain (tx ${hash}, status: ${receipt.status})`);
+  }
+  console.log(`${label} confirmed on-chain (block ${receipt.blockNumber})`);
+}
 
 const HOURCHAIN_RPC_URL = process.env.HOURCHAIN_RPC_URL || "http://45.55.55.122:8545";
 const BASE_RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
@@ -61,6 +69,7 @@ async function main() {
     const lockId = fields.lockId;
     if (!lockId) throw new Error("lockId=0x.. is required for mint");
 
+    const publicClient = createPublicClient({ chain: hourChain, transport: http(HOURCHAIN_RPC_URL) });
     const walletClient = createWalletClient({ account, chain: hourChain, transport: http(HOURCHAIN_RPC_URL) });
     console.log(`Confirming mint lockId=${lockId} to=${fields.to} amount=${fields.amount} as ${signer}`);
     const hash = await walletClient.writeContract({
@@ -68,14 +77,19 @@ async function main() {
       abi: WRAPPED_HOUR_ABI,
       functionName: "confirmMint",
       args: [lockId, fields.to, BigInt(fields.amount)],
+      // hOUR Chain's eth_estimateGas under-estimates (observed returning
+      // ~24k, barely above the 21k tx base cost) -- set an explicit limit.
+      gas: 300_000n,
     });
     console.log(`tx sent: ${hash}`);
+    await assertSucceeded(publicClient, hash, "confirmMint");
     return;
   }
 
   const releaseId = fields.releaseId;
   if (!releaseId) throw new Error("releaseId=0x.. is required for release");
 
+  const basePublicClient = createPublicClient({ chain: base, transport: http(BASE_RPC_URL) });
   const walletClient = createWalletClient({ account, chain: base, transport: http(BASE_RPC_URL) });
   console.log(`Confirming release releaseId=${releaseId} to=${fields.to} amount=${fields.amount} as ${signer}`);
   const hash = await walletClient.writeContract({
@@ -85,6 +99,7 @@ async function main() {
     args: [releaseId, fields.to, BigInt(fields.amount)],
   });
   console.log(`tx sent: ${hash}`);
+  await assertSucceeded(basePublicClient, hash, "confirmRelease");
 }
 
 main().catch((err) => {

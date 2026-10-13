@@ -72,8 +72,17 @@ async function autoConfirmMint(lockId, to, amount) {
     abi: WRAPPED_HOUR_ABI,
     functionName: "confirmMint",
     args: [lockId, to, amount],
+    // hOUR Chain's eth_estimateGas under-estimates (observed returning
+    // ~24k, barely above the 21k tx base cost) -- set an explicit limit
+    // rather than trusting auto-estimation on this chain.
+    gas: 300_000n,
   });
   console.log(`[mint] tx sent: ${hash}`);
+  const receipt = await hourChainClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    console.error(`[mint] tx ${hash} REVERTED on-chain (status: ${receipt.status})`);
+    return;
+  }
 
   manualCommandHint("mint", "lockId", lockId, to, amount);
 }
@@ -103,6 +112,11 @@ async function autoConfirmRelease(releaseId, to, amount) {
     args: [releaseId, to, amount],
   });
   console.log(`[release] tx sent: ${hash}`);
+  const receipt = await baseClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    console.error(`[release] tx ${hash} REVERTED on-chain (status: ${receipt.status})`);
+    return;
+  }
 
   manualCommandHint("release", "releaseId", releaseId, to, amount);
 }

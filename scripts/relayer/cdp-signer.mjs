@@ -1,15 +1,20 @@
-// CDP server-wallet signer as a viem account. Signing happens inside CDP
-// using the account's CDP-managed key; the private key never leaves CDP and
-// is never read or printed by this script. Mirrors the pattern used by
-// whm-onchain-agent's src/cdp-signer.mjs.
+// CDP-backed viem account that shells out to the already-authenticated
+// `cdp` CLI for every signature. The private key never leaves CDP, is
+// never read, and is never printed by this script -- not even via
+// environment variables. This also sidesteps the @coinbase/cdp-sdk
+// package's separate (and, on this machine, unconfigured)
+// CDP_API_KEY_ID/CDP_API_KEY_SECRET/CDP_WALLET_SECRET env vars: the `cdp`
+// CLI has its own working login (~/.config/cdp), so we reuse that instead.
 //
-// Credential resolution order:
-//   1. CDP_API_KEY_FILE + CDP_WALLET_SECRET_FILE env vars, if both are set
-//      (explicit key files, same convention as whm-onchain-agent).
-//   2. Otherwise, the CDP CLI's own logged-in config (~/.config/cdp), which
-//      this machine already has active -- no extra setup needed.
-import { existsSync, readFileSync } from "node:fs";
-import { CdpClient } from "@coinbase/cdp-sdk";
+// Because signing goes through `cdp evm accounts sign transaction`, which
+// is network-agnostic (it signs an RLP-encoded EIP-1559 transaction
+// without knowing or caring what chain it's for), this account works
+// identically against Base, Base Sepolia, or hOUR Chain's custom chain id
+// 9000 -- viem's walletClient fills in nonce/gas/fees via the configured
+// RPC, asks this account to sign, then broadcasts via eth_sendRawTransaction
+// itself. No CDP "send transaction" network allowlist applies.
+import { execFileSync } from "node:child_process";
+import { serializeTransaction } from "viem";
 import { toAccount } from "viem/accounts";
 
 // Bridge signer accounts for the HOUR <-> hOUR Chain bridge. See
@@ -25,41 +30,35 @@ export const BRIDGE_SIGNERS = {
 
 export const AUTO_SIGNER_NAME = "hour-bridge-signer-1";
 
-function buildCdpClient() {
-  const apiKeyFile = process.env.CDP_API_KEY_FILE;
-  const walletSecretFile = process.env.CDP_WALLET_SECRET_FILE;
-
-  if (apiKeyFile && walletSecretFile) {
-    if (!existsSync(apiKeyFile)) {
-      throw new Error(`CDP_API_KEY_FILE does not exist: ${apiKeyFile}`);
-    }
-    if (!existsSync(walletSecretFile)) {
-      throw new Error(`CDP_WALLET_SECRET_FILE does not exist: ${walletSecretFile}`);
-    }
-    const apiKey = JSON.parse(readFileSync(apiKeyFile, "utf8"));
-    return new CdpClient({
-      apiKeyId: apiKey.id ?? apiKey.apiKeyId ?? apiKey.name,
-      apiKeySecret: apiKey.privateKey ?? apiKey.apiKeySecret ?? apiKey.secret,
-      walletSecret: readFileSync(walletSecretFile, "utf8").trim(),
-    });
-  }
-
-  // Falls back to the CDP CLI's own active login.
-  return new CdpClient();
+function cdpCliSignTransaction(address, serializedUnsignedTx) {
+  const out = execFileSync(
+    "cdp",
+    ["evm", "accounts", "sign", "transaction", address, `transaction=${serializedUnsignedTx}`],
+    { encoding: "utf8" },
+  );
+  const { signedTransaction } = JSON.parse(out);
+  return signedTransaction;
 }
 
-/** @returns a viem Account whose signing is delegated to CDP by address. */
-export async function loadCdpAccount(address) {
-  const cdp = buildCdpClient();
-  const account = await cdp.evm.getAccount({ address });
-  if (account.address.toLowerCase() !== address.toLowerCase()) {
-    throw new Error(`CDP returned ${account.address}, expected ${address}.`);
-  }
-  return toAccount(account);
+/** @returns a viem Account whose signing is delegated to the CDP CLI. */
+export function loadCdpAccount(address) {
+  return toAccount({
+    address,
+    async signTransaction(transaction) {
+      const unsigned = serializeTransaction(transaction);
+      return cdpCliSignTransaction(address, unsigned);
+    },
+    async signMessage() {
+      throw new Error("signMessage is not needed by the bridge relayer and is not implemented.");
+    },
+    async signTypedData() {
+      throw new Error("signTypedData is not needed by the bridge relayer and is not implemented.");
+    },
+  });
 }
 
 /** Resolve a signer by its CDP account name (see BRIDGE_SIGNERS above). */
-export async function loadCdpAccountByName(name) {
+export function loadCdpAccountByName(name) {
   const address = BRIDGE_SIGNERS[name];
   if (!address) {
     throw new Error(
