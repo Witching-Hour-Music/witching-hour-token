@@ -46,10 +46,10 @@ The token repo sits alongside:
 
 ## App Integration
 
-Use these files when handing the token to an app team or Replit:
+Use these files when handing the token to an app team or another package:
 
 - `INTEGRATION.md`
-- `src/integration/hourToken.ts`
+- `src/integration/hourToken.js`
 - `.env.example`
 
 These files provide the deployed address, Base chain config, token metadata, and the app-facing ABI without requiring the app to dig through Hardhat internals.
@@ -64,6 +64,8 @@ The contract is deliberately not in a final post-launch state:
 - witching-hour settings remain owner-controlled
 
 That is intentional while launch sequencing is still being finalized.
+
+The repo now exports `hOUR` metadata from `src/integration/hourToken.js` so the app can consume the same address, chain, and ABI values without a second hardcoded copy.
 
 ## Live Values
 

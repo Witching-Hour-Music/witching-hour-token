@@ -16,6 +16,17 @@ describe("HourToken", function () {
     return { token, owner, liquidityWallet, rewardWallet, alice, bob };
   }
 
+  it("rejects zero-address constructor wallets", async function () {
+    const [, , rewardWallet] = await ethers.getSigners();
+
+    await expect(
+      ethers.deployContract("HourToken", [
+        ethers.ZeroAddress,
+        rewardWallet.address,
+      ]),
+    ).to.revert(ethers);
+  });
+
   it("mints the full supply to the owner in the constructor", async function () {
     const { token, owner } = await deployHourToken();
     const expectedSupply = 21_369_777n * 10n ** 18n;
@@ -35,7 +46,7 @@ describe("HourToken", function () {
     await token.enableTrading();
 
     await expect(token.connect(alice).transfer(bob.address, 100n))
-      .to.not.be.reverted;
+      .to.not.revert(ethers);
 
     expect(await token.balanceOf(bob.address)).to.equal(93n);
   });
@@ -56,6 +67,24 @@ describe("HourToken", function () {
       .to.equal(2n);
   });
 
+  it("emits admin events when state changes", async function () {
+    const { token, alice } = await deployHourToken();
+    const latestBlock = await ethers.provider.getBlock("latest");
+    const timestamp = latestBlock!.timestamp;
+
+    await expect(token.enableTrading())
+      .to.emit(token, "TradingEnabled");
+    await expect(token.setFees(1, 2, 3))
+      .to.emit(token, "FeesUpdated")
+      .withArgs(1, 2, 3);
+    await expect(token.setWitchingHours(timestamp, timestamp + 60))
+      .to.emit(token, "WitchingHoursUpdated")
+      .withArgs(timestamp, timestamp + 60);
+    await expect(token.setFeeExempt(alice.address, true))
+      .to.emit(token, "FeeExemptUpdated")
+      .withArgs(alice.address, true);
+  });
+
   it("doubles the burn fee during witching hours", async function () {
     const { token, alice, bob, liquidityWallet, rewardWallet } =
       await deployHourToken();
@@ -74,5 +103,11 @@ describe("HourToken", function () {
     expect(await token.balanceOf(rewardWallet.address)).to.equal(2n);
     expect(await token.balanceOf("0x000000000000000000000000000000000000dEaD"))
       .to.equal(4n);
+  });
+
+  it("rejects inverted witching hours", async function () {
+    const { token } = await deployHourToken();
+
+    await expect(token.setWitchingHours(200, 100)).to.revert(ethers);
   });
 });

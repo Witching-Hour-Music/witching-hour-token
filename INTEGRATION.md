@@ -1,6 +1,6 @@
 # hOUR App Integration
 
-Use the tracked config in `src/integration/hourToken.ts` when wiring this token into the app.
+Use the tracked config in `src/integration/hourToken.js` when wiring this token into the app.
 
 ## Deployment
 
@@ -35,6 +35,7 @@ Use the tracked config in `src/integration/hourToken.ts` when wiring this token 
 - The deployer wallet currently holds the full supply.
 - The owner still controls trading activation, fees, fee exemptions, and witching hours.
 - Do not present this token as live-trading until liquidity exists and `enableTrading()` has been called.
+- Treat `src/integration/hourToken.js` as the canonical app-facing source of truth for address, chain, and ABI values.
 
 ## Suggested UI behavior
 

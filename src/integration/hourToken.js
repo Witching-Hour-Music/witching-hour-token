@@ -1,5 +1,5 @@
 export const HOUR_TOKEN_ADDRESS =
-  "0xFC1c0FFF99845676A588CE21c28C4859F3035866" as const;
+  "0xFC1c0FFF99845676A588CE21c28C4859F3035866";
 
 export const HOUR_TOKEN_CHAIN = {
   id: 8453,
@@ -11,7 +11,7 @@ export const HOUR_TOKEN_CHAIN = {
   },
   rpcUrl: "https://mainnet.base.org",
   blockExplorerUrl: "https://basescan.org",
-} as const;
+};
 
 export const HOUR_TOKEN_METADATA = {
   name: "Witching Hour",
@@ -20,9 +20,8 @@ export const HOUR_TOKEN_METADATA = {
   owner: "0x52864a2EabcBa4E8421e541c8E0Ca74c55724732",
   liquidityWallet: "0xA327c87770893178144C422511cfaC682c926C6A",
   rewardWallet: "0x8AF9F8d7f71f0625794544DC3aaF36d2c75b60F0",
-} as const;
+};
 
-// App-facing ABI for public reads, balance checks, approvals, transfers, and event wiring.
 export const HOUR_TOKEN_ABI = [
   {
     type: "function",
@@ -183,4 +182,4 @@ export const HOUR_TOKEN_ABI = [
       { indexed: false, name: "value", type: "uint256" },
     ],
   },
-] as const;
+];

@@ -5,6 +5,14 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract HourToken is ERC20, Ownable {
+    error ZeroAddress();
+    error FeesTooHigh();
+    error InvalidWitchingHours();
+
+    event TradingEnabled(uint256 launchBlock);
+    event FeesUpdated(uint256 burnFee, uint256 liquidityFee, uint256 rewardFee);
+    event WitchingHoursUpdated(uint256 start, uint256 end);
+    event FeeExemptUpdated(address wallet, bool exempt);
 
     uint256 public burnFee = 2;
     uint256 public liquidityFee = 3;
@@ -30,6 +38,9 @@ contract HourToken is ERC20, Ownable {
         ERC20("Witching Hour", "hOUR")
         Ownable(msg.sender)
     {
+        if (_liquidityWallet == address(0) || _rewardWallet == address(0)) {
+            revert ZeroAddress();
+        }
 
         liquidityWallet = _liquidityWallet;
         rewardWallet = _rewardWallet;
@@ -43,8 +54,13 @@ contract HourToken is ERC20, Ownable {
     }
 
     function enableTrading() external onlyOwner {
+        if (tradingEnabled) {
+            return;
+        }
+
         tradingEnabled = true;
         launchBlock = block.number;
+        emit TradingEnabled(launchBlock);
     }
 
     function setFees(
@@ -58,15 +74,26 @@ contract HourToken is ERC20, Ownable {
         burnFee = _burn;
         liquidityFee = _liq;
         rewardFee = _reward;
+        emit FeesUpdated(_burn, _liq, _reward);
     }
 
     function setWitchingHours(uint256 start, uint256 end) external onlyOwner {
+        if (start > end) {
+            revert InvalidWitchingHours();
+        }
+
         witchingStart = start;
         witchingEnd = end;
+        emit WitchingHoursUpdated(start, end);
     }
 
     function setFeeExempt(address wallet, bool exempt) external onlyOwner {
+        if (wallet == address(0)) {
+            revert ZeroAddress();
+        }
+
         isFeeExempt[wallet] = exempt;
+        emit FeeExemptUpdated(wallet, exempt);
     }
 
     function _update(address from, address to, uint256 amount) internal override {
