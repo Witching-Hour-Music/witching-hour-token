@@ -15,7 +15,11 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.js --network base",
-    "inspect:base": "node scripts/inspect.js"
+    "deploy:bridge-vault": "hardhat run scripts/deploy-bridge-vault.js --network base",
+    "deploy:wrapped-hour": "hardhat run scripts/deploy-wrapped-hour.js --network hourchain",
+    "inspect:base": "node scripts/inspect.js",
+    "bridge:relay": "node scripts/relayer/watch-and-confirm.mjs",
+    "bridge:confirm": "node scripts/relayer/manual-confirm.mjs"
   },
   "keywords": [],
   "author": "",
@@ -40,8 +44,10 @@
   },
   "dependencies": {
     "@account-abstraction/contracts": "^0.8.0",
+    "@coinbase/cdp-sdk": "^1.58.0",
     "@openzeppelin/contracts": "^5.6.1",
-    "dotenv": "^17.3.1"
+    "dotenv": "^17.3.1",
+    "viem": "^2.57.5"
   },
   "allowScripts": {
     "esbuild@0.28.2": true
