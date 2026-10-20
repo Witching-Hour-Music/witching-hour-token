@@ -17,18 +17,35 @@ import { execFileSync } from "node:child_process";
 import { serializeTransaction } from "viem";
 import { toAccount } from "viem/accounts";
 
-// Bridge signer accounts for the HOUR <-> hOUR Chain bridge. See
-// hOUR-Chain docs/ADR-0007-hour-token-bridge.md. All three currently sit
-// under the same CDP project/API key, so "signer-1" is the only one this
-// relayer auto-confirms with -- the remaining confirmation needed to reach
-// threshold must come from a manual run of manual-confirm.mjs.
+// Bridge signer accounts for the HOUR <-> hOUR Chain bridge. The defaults
+// describe the legacy deployment; production redeployments must provide
+// reviewed replacement addresses through HOUR_BRIDGE_SIGNER_1..3. Signer 1
+// is the only account this relayer auto-confirms with. Independent signer
+// custody must be reviewed separately; addresses alone cannot prove it.
+const LEGACY_SIGNER_1 = "0x565aa09A395dFA73132A09327E2D824EE9B527a1";
+const LEGACY_SIGNER_2 = "0xf32efbCfF73cF0fD1950c514d68d551188d54795";
+const DEFAULT_SIGNER_3 = "0x1e3099CdACFC8ecF0Dda292436bf4e64A71Fa273";
+
 export const BRIDGE_SIGNERS = {
-  "hour-bridge-signer-1": "0x565aa09A395dFA73132A09327E2D824EE9B527a1",
-  "hour-bridge-signer-2": "0xf32efbCfF73cF0fD1950c514d68d551188d54795",
-  "hour-bridge-signer-3": "0x1e3099CdACFC8ecF0Dda292436bf4e64A71Fa273",
+  "hour-bridge-signer-1": process.env.HOUR_BRIDGE_SIGNER_1 || LEGACY_SIGNER_1,
+  "hour-bridge-signer-2": process.env.HOUR_BRIDGE_SIGNER_2 || LEGACY_SIGNER_2,
+  "hour-bridge-signer-3": process.env.HOUR_BRIDGE_SIGNER_3 || DEFAULT_SIGNER_3,
 };
 
 export const AUTO_SIGNER_NAME = "hour-bridge-signer-1";
+
+export function requireReviewedBridgeSignerCustody() {
+  const addresses = Object.values(BRIDGE_SIGNERS).map((address) => address.toLowerCase());
+  if (new Set(addresses).size !== addresses.length || addresses.some((address) => !/^0x[0-9a-f]{40}$/.test(address))) {
+    throw new Error("Bridge signer addresses must be three distinct, valid EVM addresses");
+  }
+  if (addresses.includes(LEGACY_SIGNER_1.toLowerCase()) && addresses.includes(LEGACY_SIGNER_2.toLowerCase())) {
+    throw new Error("Refusing production deployment: the legacy 2-of-3 quorum can be met by two signers under shared CDP custody");
+  }
+  if (process.env.BRIDGE_SIGNERS_CUSTODY_REVIEWED !== "true") {
+    throw new Error("Set BRIDGE_SIGNERS_CUSTODY_REVIEWED=true only after independently reviewing signer custody");
+  }
+}
 
 function cdpCliSignTransaction(address, serializedUnsignedTx) {
   const out = execFileSync(

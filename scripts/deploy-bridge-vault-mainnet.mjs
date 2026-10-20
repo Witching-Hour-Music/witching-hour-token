@@ -19,7 +19,7 @@ import {
   toHex,
 } from "viem";
 import { base } from "viem/chains";
-import { loadCdpAccount, BRIDGE_SIGNERS } from "./relayer/cdp-signer.mjs";
+import { loadCdpAccount, BRIDGE_SIGNERS, requireReviewedBridgeSignerCustody } from "./relayer/cdp-signer.mjs";
 
 const HOUR_TOKEN_ADDRESS = "0xFC1c0FFF99845676A588CE21c28C4859F3035866";
 const TREASURY_ADDRESS = "0x736b1d28344e02A3CC3A680669BDDA3cf7Ec215c";
@@ -32,6 +32,7 @@ function loadArtifact(relPath) {
 }
 
 async function main() {
+  requireReviewedBridgeSignerCustody();
   const vaultArtifact = loadArtifact("../artifacts/contracts/HourBridgeVault.sol/HourBridgeVault.json");
   const account = loadCdpAccount(TREASURY_ADDRESS);
   const publicClient = createPublicClient({ chain: base, transport: http("https://mainnet.base.org") });
