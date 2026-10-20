@@ -14,6 +14,7 @@ import {
   http,
   encodeDeployData,
   getContractAddress,
+  parseAbi,
   pad,
   toHex,
 } from "viem";
@@ -35,13 +36,30 @@ async function main() {
   const account = loadCdpAccount(TREASURY_ADDRESS);
   const publicClient = createPublicClient({ chain: base, transport: http("https://mainnet.base.org") });
   const walletClient = createWalletClient({ account, chain: base, transport: http("https://mainnet.base.org") });
+  const bridgeAdmin = process.env.BASE_BRIDGE_ADMIN;
+  if (!bridgeAdmin) throw new Error("BASE_BRIDGE_ADMIN must be set to a deployed multisig contract on Base mainnet");
+  const bridgeAdminCode = await publicClient.getBytecode({ address: bridgeAdmin });
+  if (!bridgeAdminCode || bridgeAdminCode === "0x") {
+    throw new Error("BRIDGE_ADMIN has no Base mainnet contract code; refusing EOA ownership");
+  }
+  const safeAdminAbi = parseAbi([
+    "function getOwners() view returns (address[])",
+    "function getThreshold() view returns (uint256)",
+  ]);
+  const [safeOwners, safeThreshold] = await Promise.all([
+    publicClient.readContract({ address: bridgeAdmin, abi: safeAdminAbi, functionName: "getOwners" }),
+    publicClient.readContract({ address: bridgeAdmin, abi: safeAdminAbi, functionName: "getThreshold" }),
+  ]);
+  if (safeOwners.length < 3 || safeThreshold < 2n) {
+    throw new Error("BASE_BRIDGE_ADMIN must be a Safe with at least 3 owners and a 2+ threshold");
+  }
 
   const balance = await publicClient.getBalance({ address: account.address });
   console.log(`Deployer: ${account.address}`);
   console.log(`Balance:  ${balance} wei`);
 
   const signers = Object.values(BRIDGE_SIGNERS);
-  const args = [HOUR_TOKEN_ADDRESS, signers, 2n];
+  const args = [HOUR_TOKEN_ADDRESS, signers, 2n, bridgeAdmin];
   const initcode = encodeDeployData({ abi: vaultArtifact.abi, bytecode: vaultArtifact.bytecode, args });
   const vaultAddress = getContractAddress({
     bytecode: initcode,
@@ -59,6 +77,7 @@ async function main() {
   console.log(`HOUR token:       ${HOUR_TOKEN_ADDRESS}`);
   console.log(`Signers:          ${signers.join(", ")}`);
   console.log(`Threshold:        2`);
+  console.log(`Bridge admin:     ${bridgeAdmin}`);
   console.log(`Predicted address: ${vaultAddress}`);
 
   const gasEstimate = await publicClient.estimateGas({

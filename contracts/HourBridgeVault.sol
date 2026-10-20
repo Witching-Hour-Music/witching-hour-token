@@ -9,12 +9,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// bridge — the signer set is the entire security boundary, not a
 /// trust-minimized light-client bridge. See hOUR-Chain docs/ADR-0007.
 ///
-/// Known limitation: the owner alone manages the signer set and threshold
-/// (same trust level as HourToken's existing Ownable governance). The owner
-/// could lower the threshold and self-approve releases. Acceptable for the
-/// current single-founder stage; revisit before any external signer/value
-/// at risk grows.
+/// The configured owner must be an independently controlled multisig on
+/// production deployments. The contract enforces a minimum 2-of-3 signer
+/// policy, but the owner can still replace signers; owner custody remains part
+/// of the bridge trust boundary.
 contract HourBridgeVault is Ownable {
+    uint256 public constant MIN_SIGNERS = 3;
+    uint256 public constant MIN_THRESHOLD = 2;
     error ZeroAddress();
     error InvalidThreshold();
     error NotSigner();
@@ -49,8 +50,9 @@ contract HourBridgeVault is Ownable {
     constructor(
         address _hourToken,
         address[] memory _signers,
-        uint256 _threshold
-    ) Ownable(msg.sender) {
+        uint256 _threshold,
+        address _owner
+    ) Ownable(_owner) {
         if (_hourToken == address(0)) revert ZeroAddress();
 
         hourToken = IERC20(_hourToken);
@@ -63,7 +65,9 @@ contract HourBridgeVault is Ownable {
             }
         }
 
-        if (_threshold == 0 || _threshold > signerCount) revert InvalidThreshold();
+        if (signerCount < MIN_SIGNERS || _threshold < MIN_THRESHOLD || _threshold > signerCount) {
+            revert InvalidThreshold();
+        }
         threshold = _threshold;
     }
 
@@ -124,14 +128,14 @@ contract HourBridgeVault is Ownable {
             signerCount++;
         } else {
             signerCount--;
-            if (threshold > signerCount) revert InvalidThreshold();
+            if (signerCount < MIN_SIGNERS || threshold > signerCount) revert InvalidThreshold();
         }
 
         emit SignerUpdated(signer, enabled);
     }
 
     function setThreshold(uint256 _threshold) external onlyOwner {
-        if (_threshold == 0 || _threshold > signerCount) revert InvalidThreshold();
+        if (_threshold < MIN_THRESHOLD || _threshold > signerCount) revert InvalidThreshold();
         threshold = _threshold;
         emit ThresholdUpdated(_threshold);
     }

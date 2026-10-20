@@ -28,7 +28,7 @@ async function assertSucceeded(publicClient, hash, label) {
   console.log(`${label} confirmed on-chain (block ${receipt.blockNumber})`);
 }
 
-const HOURCHAIN_RPC_URL = process.env.HOURCHAIN_RPC_URL || "http://45.55.55.122:8545";
+const HOURCHAIN_RPC_URL = process.env.HOURCHAIN_RPC_URL || "http://100.76.58.84:8545";
 const BASE_RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 const hourChain = {
   id: 9000,

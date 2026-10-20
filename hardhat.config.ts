@@ -38,7 +38,7 @@ export default defineConfig({
       type: "http",
       chainType: "generic",
       chainId: 9000,
-      url: process.env.HOURCHAIN_RPC_URL || "http://45.55.55.122:8545",
+      url: process.env.HOURCHAIN_RPC_URL || "http://100.76.58.84:8545",
       accounts: hourChainAccounts
     }
   },

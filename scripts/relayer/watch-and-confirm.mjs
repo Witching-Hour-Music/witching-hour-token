@@ -15,7 +15,7 @@ import { HOUR_BRIDGE_VAULT_ABI, WRAPPED_HOUR_ABI } from "./abis.mjs";
 const HOUR_BRIDGE_VAULT_ADDRESS = requireEnv("HOUR_BRIDGE_VAULT_ADDRESS");
 const WRAPPED_HOUR_ADDRESS = requireEnv("WRAPPED_HOUR_ADDRESS");
 const BASE_RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
-const HOURCHAIN_RPC_URL = process.env.HOURCHAIN_RPC_URL || "http://45.55.55.122:8545";
+const HOURCHAIN_RPC_URL = process.env.HOURCHAIN_RPC_URL || "http://100.76.58.84:8545";
 const HOURCHAIN_CHAIN_ID = 9000;
 const POLL_INTERVAL_MS = Number(process.env.RELAYER_POLL_INTERVAL_MS || 15_000);
 

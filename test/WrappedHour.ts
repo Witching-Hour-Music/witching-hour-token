@@ -10,17 +10,28 @@ describe("WrappedHour", function () {
     const wrapped = await ethers.deployContract("WrappedHour", [
       [signer1.address, signer2.address, signer3.address],
       2n,
+      owner.address,
     ]);
 
     return { wrapped, owner, signer1, signer2, signer3, alice };
   }
 
   it("rejects a threshold above the signer count", async function () {
-    const [, signer1] = await ethers.getSigners();
+    const [owner, signer1] = await ethers.getSigners();
 
     await expect(
-      ethers.deployContract("WrappedHour", [[signer1.address], 2n]),
+      ethers.deployContract("WrappedHour", [[signer1.address], 2n, owner.address]),
     ).to.revert(ethers);
+  });
+
+  it("enforces a minimum 2-of-3 policy and configured owner", async function () {
+    const { wrapped, owner, signer3 } = await deployFixture();
+
+    expect(await wrapped.owner()).to.equal(owner.address);
+    await expect(wrapped.connect(owner).setThreshold(1n)).to.revert(ethers);
+    await expect(wrapped.connect(owner).setSigner(signer3.address, false)).to.revert(ethers);
+    expect(await wrapped.isSigner(signer3.address)).to.equal(true);
+    expect(await wrapped.signerCount()).to.equal(3n);
   });
 
   it("mints only once threshold confirmations agree, and rejects mismatched params", async function () {

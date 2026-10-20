@@ -17,6 +17,7 @@ describe("HourBridgeVault", function () {
       await token.getAddress(),
       [signer1.address, signer2.address, signer3.address],
       2n,
+      owner.address,
     ]);
 
     // Pre-launch token only allows exempt wallets to move funds; the vault
@@ -29,7 +30,7 @@ describe("HourBridgeVault", function () {
   }
 
   it("rejects a threshold above the signer count", async function () {
-    const [, liquidityWallet, rewardWallet, signer1] = await ethers.getSigners();
+    const [owner, liquidityWallet, rewardWallet, signer1] = await ethers.getSigners();
     const token = await ethers.deployContract("HourToken", [
       liquidityWallet.address,
       rewardWallet.address,
@@ -40,8 +41,19 @@ describe("HourBridgeVault", function () {
         await token.getAddress(),
         [signer1.address],
         2n,
+        owner.address,
       ]),
     ).to.revert(ethers);
+  });
+
+  it("enforces a minimum 2-of-3 policy and configured owner", async function () {
+    const { vault, owner, signer3 } = await deployFixture();
+
+    expect(await vault.owner()).to.equal(owner.address);
+    await expect(vault.connect(owner).setThreshold(1n)).to.revert(ethers);
+    await expect(vault.connect(owner).setSigner(signer3.address, false)).to.revert(ethers);
+    expect(await vault.isSigner(signer3.address)).to.equal(true);
+    expect(await vault.signerCount()).to.equal(3n);
   });
 
   it("locks tokens and emits a lock id", async function () {

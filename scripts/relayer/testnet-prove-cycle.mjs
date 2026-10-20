@@ -54,7 +54,7 @@ import { readFileSync } from "node:fs";
 import { loadCdpAccountByName, BRIDGE_SIGNERS } from "./cdp-signer.mjs";
 import { WRAPPED_HOUR_ABI } from "./abis.mjs";
 
-const HOURCHAIN_RPC_URL = process.env.HOURCHAIN_RPC_URL || "http://45.55.55.122:8545";
+const HOURCHAIN_RPC_URL = process.env.HOURCHAIN_RPC_URL || "http://100.76.58.84:8545";
 const WRAPPED_HOUR_ADDRESS = process.env.WRAPPED_HOUR_ADDRESS;
 const BASE_SEPOLIA_RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org";
 
@@ -102,7 +102,7 @@ async function main() {
     walletClient: baseSepoliaWallet,
     abi: vaultArtifact.abi,
     bytecode: vaultArtifact.bytecode,
-    args: [testHourAddress, signers, 2n],
+    args: [testHourAddress, signers, 2n, account.address],
     account,
   });
   console.log(`   HourBridgeVault deployed: ${vaultAddress}`);
