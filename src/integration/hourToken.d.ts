@@ -24,3 +24,13 @@ export declare const HOUR_TOKEN_METADATA: {
 };
 
 export declare const HOUR_TOKEN_ABI: Abi;
+
+/** Reviewable support intent only; never signs or submits a transfer. */
+export declare function createSocialFiSupportIntent(args: {
+  eventId: string; workId: string; recipient: string; amountAtomic: string;
+}): {
+  kind: string; version: number; eventId: string; workId: string; chainId: number;
+  token: string; recipient: string; amountAtomic: string; state: string;
+  requiresVerifiedWalletBinding: boolean; requiresApproval: boolean;
+  simulateFirst: boolean; transactionSubmitted: boolean;
+};

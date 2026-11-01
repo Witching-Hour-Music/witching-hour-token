@@ -92,3 +92,7 @@ npm run inspect:base
 
 - BaseScan: `https://basescan.org/address/0xFC1c0FFF99845676A588CE21c28C4859F3035866#code`
 - GitHub: `https://github.com/witchinghourartcollective/witching-hour-token`
+
+## SocialFi creator community
+
+SocialFi support requests bind a creator work and event to the existing Base hOUR asset without sending funds or assigning rights. See [SocialFi support boundary](docs/SOCIALFI.md) and `src/integration/socialfi.js`.
